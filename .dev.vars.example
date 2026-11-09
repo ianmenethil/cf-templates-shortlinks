@@ -1,0 +1,10 @@
+# Admin token your server sends as "Authorization: Bearer <token>" to create links.
+# Use a long random value, for example from: openssl rand -base64 32
+LINKS_ADMIN_TOKEN=
+
+# Local development only: remove the "# " from the next two lines in your .dev.vars so the
+# admin panel opens on your machine. They match the signed-in user that `access.dev` in
+# wrangler.jsonc simulates. They stay commented here because Deploy to Cloudflare reads the
+# Worker's secrets from this file, and these two are `vars` in wrangler.jsonc, not secrets.
+# ACCESS_TEAM_DOMAIN=https://local-dev.cloudflareaccess.com
+# ACCESS_AUD=local-dev
