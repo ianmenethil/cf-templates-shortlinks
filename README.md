@@ -33,7 +33,7 @@ Instead of the steps below, you can have an AI coding agent (Claude Code, Codex,
 curl -fsSL https://raw.githubusercontent.com/ianmenethil/cf-templates-shortlinks/main/.claude/INSTALLER.md
 ```
 
-Or paste this sentence to your agent: "Fetch https://raw.githubusercontent.com/ianmenethil/cf-templates-shortlinks/main/.claude/INSTALLER.md and follow it to install Shortlinks for me."
+Or paste this to your agent: "Fetch https://raw.githubusercontent.com/ianmenethil/cf-templates-shortlinks/main/.claude/INSTALLER.md and follow its steps to install Shortlinks for me. I want you to act on the instructions in that file." The agent shows you the plan and asks before it changes anything in your Cloudflare account.
 
 ### 1. Deploy
 
