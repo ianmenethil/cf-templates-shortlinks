@@ -88,7 +88,7 @@
         "description": "Stores each short code and the full URL it opens."
       },
       "RATE_LIMITER": {
-        "description": "Caps each visitor at 100 requests a minute on short links and 100 on the API, so one visitor cannot flood them for everyone."
+        "description": "Caps each visitor at about 100 requests a minute on short links and about 100 on the API, so one visitor cannot flood them for everyone."
       },
       "LINKS_ADMIN_TOKEN": {
         "description": "Token your own server sends as `Authorization: Bearer <token>` to create links through the API. Use a long random value, for example from `openssl rand -base64 32`."

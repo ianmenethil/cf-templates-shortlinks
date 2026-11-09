@@ -11,11 +11,15 @@ Create a short link such as `https://go.ianmenethil.com/s/RxA8XTt2` for any page
 - **Admin panel.** Create and copy links, search them, see who created each one and when, and delete them, in light or dark mode. It lives at `/admin` behind [Cloudflare Access](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/), so only people you allow can sign in.
 - **API for your own systems.** `POST /links` with an admin token creates links from a server, a script or a CRM.
 - **Only your sites.** A link is accepted only if it is `https` and its host is in `ALLOWED_HOSTS`, so nobody can use your shortener to send people elsewhere.
-- **Rate limited.** Cloudflare's [rate limiter](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) allows each visitor 100 requests a minute on short links and 100 on the API, counted per Cloudflare location. One visitor flooding your links does not block them for anyone else. The admin panel is not rate limited; Access guards it.
+- **Rate limited.** Cloudflare's [rate limiter](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) allows each visitor about 100 requests a minute on short links and about 100 on the API, counted per Cloudflare location; the limits are approximate. Visitors are told apart by their IP address, so people who share one address, such as on a mobile network or an office connection, share one allowance. One visitor flooding your links does not block them for anyone else. The admin panel is not rate limited; Access guards it.
 
 Built with [React](https://react.dev), [Vite](https://vite.dev), [shadcn/ui](https://ui.shadcn.com) and [Tailwind CSS](https://tailwindcss.com) for the admin panel, [Hono](https://hono.dev), [Workers KV](https://developers.cloudflare.com/kv/), the Workers [rate limiting binding](https://developers.cloudflare.com/workers/runtime-apis/bindings/rate-limit/) and [Cloudflare Access](https://developers.cloudflare.com/workers/configuration/cloudflare-access/).
 
 <!-- dash-content-end -->
+
+| Light mode | Dark mode |
+| --- | --- |
+| ![The admin panel in light mode: a form to create a short link above a searchable list of links with their destination, age and creator](docs/screenshots/admin-light.png) | ![The same admin panel in dark mode](docs/screenshots/admin-dark.png) |
 
 ## Get started
 
@@ -64,13 +68,6 @@ Until both are set, `/admin` answers `403` to everyone.
 
 Open `https://go.ianmenethil.com/admin`, sign in with Access, paste an address such as `https://ianmenethil.com/blog/hello-world?utm_source=newsletter`, and select **Create link**. Copy the short link and share it.
 
-## How the admin panel is secured
-
-- **Cloudflare Access signs people in.** The panel shows the email of the person signed in, for example `admin@ianmenethil.com`, and records it against each link they create. It comes from the Access sign-in, not from your Cloudflare account.
-- **The Worker checks every admin request itself**, so the panel cannot be reached around Access, for example on the `workers.dev` address. The Worker runs first for every `/admin` request, including the panel's own page and files (`run_worker_first` in `wrangler.jsonc`). It accepts Cloudflare's [`ctx.access`](https://developers.cloudflare.com/workers/configuration/cloudflare-access/) when the runtime provides it (local development does; a deployed Worker with static assets does not) or verifies the [Access token](https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/) in `Cf-Access-Jwt-Assertion` against your team's public keys, which Cloudflare caches for five minutes. The token must be for `ACCESS_AUD` and issued by `ACCESS_TEAM_DOMAIN`.
-- **The admin API answers only the panel.** It sends no CORS headers, so browsers stop other sites from reading it or sending it JSON. Hono's [`csrf`](https://hono.dev/docs/middleware/builtin/csrf) middleware refuses form-style requests from other sites. Its answers carry `Cache-Control: no-store`.
-- **The panel's pages carry security headers** from Hono's [`secureHeaders`](https://hono.dev/docs/middleware/builtin/secure-headers), including a Content Security Policy that allows only its own script; inline styles are allowed for shadcn's toast and dialog.
-
 ## Create links from your own systems
 
 ```bash
@@ -89,15 +86,20 @@ Links created this way show `api` as their creator in the admin panel. Keep the 
 | Request | Response |
 | --- | --- |
 | `POST /links` without the admin token, or with a wrong one | `401` |
+| `POST /links` with an `Authorization` header that is not `Bearer <token>` | `400` |
+| `POST /links` with a body over 4 KiB | `413` |
 | `POST /links` with a non-`https` URL, a host not in `ALLOWED_HOSTS`, a missing `url`, a body of `null` or broken JSON | `400` |
 | `POST /links` with a valid URL | `201` with `code` and `shortUrl` |
 | `GET /s/<code>` for a saved code | `302` to the saved URL |
-| `GET /s/<code>` for an unknown code | `404` |
+| `GET /s/<code>` for an unknown code, or one that is not 8 characters from the code alphabet | `404` |
+| `GET /s/<code>` or `POST /links` without the `CF-Connecting-IP` header Cloudflare adds | `400` |
 | `GET /` | `302` to `/admin/` |
-| More than 100 requests a minute from one visitor to short links (any codes), or more than 100 to `POST /links` | `429` |
+| More than about 100 requests a minute from one visitor to short links (any codes), or more than about 100 to `POST /links` | `429` |
 | `/admin` without a Cloudflare Access sign-in | `401`, or `403` until `ACCESS_TEAM_DOMAIN` and `ACCESS_AUD` are set |
 
 A short link hides the full address only until it opens. Anyone who opens it can see the full address and its query string.
+
+A new link can take up to a minute to open from other parts of the world, and a deleted link can keep redirecting there for up to a minute, because [Workers KV](https://developers.cloudflare.com/kv/concepts/how-kv-works/) spreads changes to each Cloudflare location over that time.
 
 ## Develop locally
 
@@ -127,29 +129,10 @@ Before a manual deploy, set the secret with `pnpm exec wrangler secret put LINKS
 
 Links created in the last minute can take that long to appear after a page reload, because KV lists are [eventually consistent](https://developers.cloudflare.com/kv/concepts/how-kv-works/). The panel shows links you create straight away.
 
-## Project layout
+## Learn more
 
-This follows Cloudflare's [React + Vite + Hono template](https://github.com/cloudflare/templates/tree/main/vite-react-template).
-
-```
-admin/index.html     The admin panel's page, served at /admin/
-src/react-app/       The admin panel: React components (components/ui/ holds the shadcn/ui ones, trimmed to what the panel uses), the theme provider, API calls, and index.css with Tailwind, shadcn's open and closed variants and the theme colours
-components.json      shadcn/ui settings: `pnpm dlx shadcn@latest add <component>` writes into src/react-app/components/ui/
-src/worker/          The Worker (Hono): index.ts wires the routes in routes/ to the helpers in lib/
-src/shared/          Types and the short-link address helper, used by both
-test/                Tests that run inside the Workers runtime
-vitest.config.ts     Test settings: the Workers runtime and fixed test values for the admin token and Access
-wrangler.jsonc       Bindings, variables and static assets settings
-.dev.vars.example    Template for the local `.dev.vars`, and the Worker secrets Deploy to Cloudflare asks for
-eslint.config.js     ESLint rules: TypeScript, React hooks and TSDoc
-.github/workflows/ci.yml  CI: audit, generated types, `pnpm run check` and the tests
-```
-
-TypeScript 7 does the type check (`tsc`). ESLint's TypeScript support does not run on TypeScript 7 yet, so `package.json` also installs TypeScript 6 under the name `typescript` for it, as the [TypeScript 7.0 announcement](https://devblogs.microsoft.com/typescript/announcing-typescript-7-0/) describes; TypeScript 7 is installed as `@typescript/native`.
-
-The panel's page is served with `script-src 'self'`, so only its own bundled script runs, and `style-src 'self' 'unsafe-inline'`, because shadcn's toast (Sonner) and dialog (Radix) add `<style>` tags and style attributes while the page runs.
-
-The panel is built into `/admin/assets/`, so its files sit behind the same Access path as the page. The Worker runs first for every `/admin` request and hands the page and files to the static assets once the Access check passes.
+- [ARCHITECTURE.md](./ARCHITECTURE.md): how a request flows through the Worker, where the code lives, and how the admin panel is secured.
+- [SECURITY.md](./SECURITY.md): how to report a security problem.
 
 ## License
 
