@@ -2,10 +2,10 @@ import { Hono } from 'hono';
 import { csrf } from 'hono/csrf';
 import { secureHeaders } from 'hono/secure-headers';
 import { shortUrl } from '../../shared/short-url';
-import type { AdminProfile, CreatedLink, LinkRecord } from '../../shared/types';
+import type { AdminProfile, CreatedLink, LinkList } from '../../shared/types';
 import type { AppEnv } from '../env';
 import { requireAccess } from '../lib/access';
-import { createLink, listLinks, targetUrlValidator } from '../lib/links';
+import { CODE_PARAM, createLink, limitBody, listLinks, targetUrlValidator } from '../lib/links';
 
 /**
  * Admin panel, its JSON API and its files, mounted at `/admin` and only reachable through Cloudflare Access.
@@ -31,7 +31,10 @@ admin.use(
       frameAncestors: ["'none'"],
       formAction: ["'self'"],
       baseUri: ["'none'"],
+      objectSrc: ["'none'"],
     },
+    strictTransportSecurity: 'max-age=15552000',
+    xFrameOptions: 'DENY',
   }),
 );
 // The API answers only this panel: it sends no CORS headers, so browsers stop other sites from
@@ -45,14 +48,19 @@ admin.use('/api/*', async (c, next) => {
 
 admin.get('/api/me', (c) => c.json<AdminProfile>({ email: c.get('adminEmail'), brand: c.env.BRAND_NAME }));
 
-admin.get('/api/links', async (c) => c.json<{ links: LinkRecord[] }>({ links: await listLinks(c.env.LINKS) }));
+admin.get('/api/links', async (c) => c.json<LinkList>({ links: await listLinks(c.env.LINKS) }));
 
-admin.post('/api/links', targetUrlValidator('Enter an https link to one of your allowed sites.'), async (c) => {
-  const link = await createLink(c.env.LINKS, c.req.valid('json').url, c.get('adminEmail'));
-  return c.json<CreatedLink>({ link, shortUrl: shortUrl(c.req.url, link.code) }, 201);
-});
+admin.post(
+  '/api/links',
+  limitBody,
+  targetUrlValidator('Enter an https link to one of your allowed sites.'),
+  async (c) => {
+    const link = await createLink(c.env.LINKS, c.req.valid('json').url, c.get('adminEmail'));
+    return c.json<CreatedLink>({ link, shortUrl: shortUrl(c.req.url, link.code) }, 201);
+  },
+);
 
-admin.delete('/api/links/:code', async (c) => {
+admin.delete(`/api/links/${CODE_PARAM}`, async (c) => {
   await c.env.LINKS.delete(c.req.param('code'));
   return c.body(null, 204);
 });

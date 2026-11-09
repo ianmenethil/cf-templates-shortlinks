@@ -1,4 +1,4 @@
-import type { AdminProfile, CreatedLink, LinkRecord } from "../../shared/types";
+import type { AdminProfile, CreatedLink, LinkList, LinkRecord } from "../../shared/types";
 
 /**
  * Calls the admin API and reads its JSON answer.
@@ -23,7 +23,7 @@ export const getProfile = (): Promise<AdminProfile> => request("/me");
 
 /** Gets every saved link, newest first. */
 export const getLinks = async (): Promise<LinkRecord[]> =>
-  (await request<{ links: LinkRecord[] }>("/links")).links;
+  (await request<LinkList>("/links")).links;
 
 /**
  * Creates a short link.

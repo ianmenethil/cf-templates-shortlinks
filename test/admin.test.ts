@@ -1,9 +1,9 @@
 import { exports } from 'cloudflare:workers';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { CreatedLink, LinkRecord } from '../src/shared/types';
+import type { CreatedLink, CreatedShortLink, LinkList } from '../src/shared/types';
 import { ADMIN_EMAIL, accessToken, serveAccessKeys } from './helpers/access';
 import { ADMIN_TOKEN, DESTINATION, ORIGIN } from './helpers/constants';
-import { createViaToken } from './helpers/links';
+import { createViaToken, openShortLink } from './helpers/links';
 
 const OTHER_SITE = 'https://evil.example';
 
@@ -71,7 +71,9 @@ describe('admin panel', () => {
     const response = await asAdmin('/');
     expect(response.status).toBe(200);
     expect(response.headers.get('Content-Security-Policy')).toContain("default-src 'self'");
-    expect(response.headers.get('X-Frame-Options')).toBe('SAMEORIGIN');
+    expect(response.headers.get('Content-Security-Policy')).toContain("object-src 'none'");
+    expect(response.headers.get('X-Frame-Options')).toBe('DENY');
+    expect(response.headers.get('Strict-Transport-Security')).toBe('max-age=15552000');
     const html = await response.text();
     expect(html).toContain('<div id="root"></div>');
     expect(html).toMatch(/<script type="module"[^>]* src="\/admin\/assets\/[^"]+\.js"/);
@@ -125,11 +127,21 @@ describe('admin API', () => {
     expect(shortUrl).toBe(`${ORIGIN}/s/${link.code}`);
 
     const listed = await adminApi('/links');
-    const { links } = await listed.json<{ links: LinkRecord[] }>();
+    const { links } = await listed.json<LinkList>();
     expect(links.map((item) => item.code)).toContain(link.code);
 
     expect((await adminApi(`/links/${link.code}`, { method: 'DELETE' })).status).toBe(204);
-    expect((await exports.default.fetch(shortUrl)).status).toBe(404);
+    expect((await openShortLink(shortUrl)).status).toBe(404);
+  });
+
+  it('refuses a body over the size limit with 413', async () => {
+    const response = await createViaAdmin(`https://ianmenethil.com/${'a'.repeat(10_000)}`);
+    expect(response.status).toBe(413);
+    expect(await response.json()).toEqual({ error: expect.any(String) });
+  });
+
+  it('answers 404 when deleting a code longer than the KV key limit', async () => {
+    expect((await adminApi(`/links/${'a'.repeat(513)}`, { method: 'DELETE' })).status).toBe(404);
   });
 
   it('refuses a URL outside ALLOWED_HOSTS', async () => {
@@ -140,8 +152,8 @@ describe('admin API', () => {
 
   it('lists links created through the token route as created by "api"', async () => {
     const created = await createViaToken(JSON.stringify({ url: DESTINATION }), { token: ADMIN_TOKEN });
-    const { code } = await created.json<{ code: string }>();
-    const { links } = await (await adminApi('/links')).json<{ links: LinkRecord[] }>();
+    const { code } = await created.json<CreatedShortLink>();
+    const { links } = await (await adminApi('/links')).json<LinkList>();
     expect(links.find((item) => item.code === code)?.createdBy).toBe('api');
   });
 });
@@ -183,6 +195,6 @@ describe('admin API answers only its own panel', () => {
       headers: { Origin: OTHER_SITE, 'Sec-Fetch-Site': 'cross-site' },
     });
     expect(response.status).toBe(403);
-    expect((await exports.default.fetch(`${ORIGIN}/s/${link.code}`, { redirect: 'manual' })).status).toBe(302);
+    expect((await openShortLink(`/s/${link.code}`)).status).toBe(302);
   });
 });

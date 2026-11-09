@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AppEnv } from '../src/worker/env';
 import { CERTS_CACHE_SECONDS, requireAccess } from '../src/worker/lib/access';
-import { ADMIN_EMAIL, CERTS_URL, accessToken, serveAccessKeys } from './helpers/access';
+import { ADMIN_EMAIL, CERTS_URL, accessToken, craftedToken, serveAccessKeys } from './helpers/access';
 import { AUD, TEAM_DOMAIN } from './helpers/constants';
 
 const app = new Hono<AppEnv>();
@@ -94,5 +94,30 @@ describe('requireAccess', () => {
       .replaceAll('/', '_');
     const response = await call(configured, { 'Cf-Access-Jwt-Assertion': `${header}.${forgedPayload}.${signature}` });
     expect(response.status).toBe(401);
+  });
+
+  it('refuses a validly signed token that has no exp claim', async () => {
+    const token = await accessToken({ exp: undefined });
+    expect((await call(configured, { 'Cf-Access-Jwt-Assertion': token })).status).toBe(401);
+  });
+
+  it('refuses an unsigned token (alg none)', async () => {
+    const token = await craftedToken({ alg: 'none', typ: 'JWT', kid: 'test-key' });
+    expect((await call(configured, { 'Cf-Access-Jwt-Assertion': token })).status).toBe(401);
+  });
+
+  it('refuses a token signed with HS256', async () => {
+    const token = await craftedToken({ alg: 'HS256', typ: 'JWT', kid: 'test-key' }, 'shared-secret');
+    expect((await call(configured, { 'Cf-Access-Jwt-Assertion': token })).status).toBe(401);
+  });
+
+  it('refuses a token with no key ID in its header', async () => {
+    const token = await accessToken({}, {});
+    expect((await call(configured, { 'Cf-Access-Jwt-Assertion': token })).status).toBe(401);
+  });
+
+  it('refuses a token whose key ID is not in the served key set', async () => {
+    const token = await accessToken({}, { kid: 'unknown-key' });
+    expect((await call(configured, { 'Cf-Access-Jwt-Assertion': token })).status).toBe(401);
   });
 });

@@ -19,6 +19,14 @@ export type AdminProfile = {
   brand: string;
 };
 
+/** Answer of `GET /admin/api/links`: every saved link, newest first. */
+export type LinkList = {
+  links: LinkRecord[];
+};
+
+/** Answer of `POST /links`: the new code and its full short URL. */
+export type CreatedShortLink = Pick<LinkRecord, 'code'> & Pick<CreatedLink, 'shortUrl'>;
+
 /** Answer of `POST /admin/api/links`. */
 export type CreatedLink = {
   link: LinkRecord;

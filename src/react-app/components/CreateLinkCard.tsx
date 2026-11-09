@@ -72,7 +72,6 @@ export const CreateLinkCard = ({
             id="url-input"
             name="url"
             type="url"
-            required
             placeholder="https://ianmenethil.com/blog/hello-world?utm_source=newsletter"
             autoComplete="off"
             aria-invalid={error ? true : undefined}

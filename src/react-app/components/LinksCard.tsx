@@ -28,6 +28,10 @@ type LinksCardProps = {
   onDelete: (link: LinkRecord) => void;
 };
 
+/** Classes shared by the table's text header cells. */
+const HEAD_CELL =
+  "h-9 text-xs font-medium tracking-wide text-muted-foreground uppercase";
+
 /** The searchable table of saved links, with copy and delete buttons on each row. */
 export const LinksCard = ({
   links,
@@ -94,15 +98,11 @@ export const LinksCard = ({
           <Table className="max-sm:block">
             <TableHeader className="bg-muted/60 max-sm:hidden">
               <TableRow className="hover:bg-transparent">
-                <TableHead className="h-9 rounded-l-md pl-3 text-xs font-medium tracking-wide text-muted-foreground uppercase">
+                <TableHead className={`rounded-l-md pl-3 ${HEAD_CELL}`}>
                   Code
                 </TableHead>
-                <TableHead className="h-9 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Destination
-                </TableHead>
-                <TableHead className="h-9 text-xs font-medium tracking-wide text-muted-foreground uppercase">
-                  Created
-                </TableHead>
+                <TableHead className={HEAD_CELL}>Destination</TableHead>
+                <TableHead className={HEAD_CELL}>Created</TableHead>
                 <TableHead className="h-9 rounded-r-md pr-3 text-right">
                   <span className="sr-only">Actions</span>
                 </TableHead>
@@ -151,23 +151,23 @@ export const LinksCard = ({
                     </TableCell>
                     <TableCell className="w-px pr-3 text-right whitespace-nowrap max-sm:col-start-2 max-sm:row-start-1 max-sm:p-0">
                       <div className="flex justify-end gap-1">
-                      <IconButton
-                        label={`Copy ${link.code}`}
-                        variant="ghost"
-                        size="icon-sm"
-                        onClick={() => onCopy(href)}
-                      >
-                        <Copy />
-                      </IconButton>
-                      <IconButton
-                        label={`Delete ${link.code}`}
-                        variant="ghost"
-                        size="icon-sm"
-                        className="hover:bg-destructive/10 hover:text-destructive"
-                        onClick={() => onDelete(link)}
-                      >
-                        <Trash2 />
-                      </IconButton>
+                        <IconButton
+                          label={`Copy ${link.code}`}
+                          variant="ghost"
+                          size="icon-sm"
+                          onClick={() => onCopy(href)}
+                        >
+                          <Copy />
+                        </IconButton>
+                        <IconButton
+                          label={`Delete ${link.code}`}
+                          variant="ghost"
+                          size="icon-sm"
+                          className="hover:bg-destructive/10 hover:text-destructive"
+                          onClick={() => onDelete(link)}
+                        >
+                          <Trash2 />
+                        </IconButton>
                       </div>
                     </TableCell>
                   </TableRow>

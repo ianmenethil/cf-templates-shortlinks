@@ -13,7 +13,7 @@ export const ThemeToggle = () => {
   const { theme, setTheme } = useTheme();
 
   const next = () => {
-    setTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length] ?? "system");
+    setTheme(THEMES[(THEMES.indexOf(theme) + 1) % THEMES.length]);
   };
 
   return (

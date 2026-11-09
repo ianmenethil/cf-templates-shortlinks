@@ -40,7 +40,7 @@ export const requireAccess = createMiddleware<AppEnv>(async (c, next) => {
     return c.text('Sign in through Cloudflare Access to use the admin panel.', 401);
   }
   try {
-    const { email } = await verifyWithJwks(
+    const { email, exp } = await verifyWithJwks(
       token,
       {
         jwks_uri: `${teamDomain}/cdn-cgi/access/certs`,
@@ -50,6 +50,10 @@ export const requireAccess = createMiddleware<AppEnv>(async (c, next) => {
       // Reuse the keys from Cloudflare's cache instead of fetching them on every admin request.
       { cf: { cacheTtl: CERTS_CACHE_SECONDS, cacheEverything: true } },
     );
+    // Hono checks `exp` only when the token has one; Access always sets it, so a token without it is not ours.
+    if (typeof exp !== 'number') {
+      throw new Error('Access token has no exp claim.');
+    }
     c.set('adminEmail', typeof email === 'string' ? email : 'admin');
   } catch {
     return c.text('Your Cloudflare Access session is not valid for this application.', 401);
