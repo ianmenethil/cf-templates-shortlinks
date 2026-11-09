@@ -40,6 +40,7 @@ wrangler.jsonc       Bindings, variables and static assets settings
 eslint.config.js     ESLint rules: TypeScript, React hooks and TSDoc
 docs/screenshots/    The admin panel screenshots shown in the README
 .github/workflows/ci.yml  CI: audit, generated types, `pnpm run check` and the tests
+.claude/INSTALLER.md Install playbook that an AI coding agent follows to copy, configure and deploy the template for a person
 ```
 
 ## Admin panel security

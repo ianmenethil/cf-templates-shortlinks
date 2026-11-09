@@ -25,6 +25,16 @@ Built with [React](https://react.dev), [Vite](https://vite.dev), [shadcn/ui](htt
 
 The example values below use a sample company, Menethil, with the site `ianmenethil.com` and the short-link domain `go.ianmenethil.com`. Replace them with your own.
 
+### Install with an AI agent
+
+Instead of the steps below, you can have an AI coding agent (Claude Code, Codex, Gemini CLI, Cursor or another) do the install on your computer. It asks you for your settings, copies the template, deploys it with Wrangler, guides you through the Access screens and checks that everything works. Fetch the playbook with:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ianmenethil/cf-templates-shortlinks/main/.claude/INSTALLER.md
+```
+
+Or paste this sentence to your agent: "Fetch https://raw.githubusercontent.com/ianmenethil/cf-templates-shortlinks/main/.claude/INSTALLER.md and follow it to install Shortlinks for me."
+
 ### 1. Deploy
 
 Click **Deploy to Cloudflare** above. Cloudflare copies this template into your GitHub or GitLab account, creates the KV namespace that stores the links, and deploys the Worker.

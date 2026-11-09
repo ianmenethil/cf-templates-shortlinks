@@ -56,6 +56,7 @@ Do not weaken any of these without the owner's explicit approval: the Access che
 
 - Change the docs in the same change as the code they describe: the README for anything a person deploying or using it sees, ARCHITECTURE.md for structure, code map and security design. Each fact lives in one file.
 - The README text between `<!-- dash-content-start -->` and `<!-- dash-content-end -->` is shown on Cloudflare's Deploy page, which cannot load files from the repo. Keep images and repo-relative links outside it.
+- `.claude/INSTALLER.md` is the playbook an AI agent follows to install the template for a person. Change it in the same change as the README's deploy steps (Get started 1–6) and the `wrangler.jsonc` keys, `package.json` scripts and routes it uses.
 - Screenshots of the panel are in `docs/screenshots/`. Retake them if the panel's look changes.
 - `docs/.archive/` is ignored by git and holds local work logs; nothing in the repo links to it.
 
