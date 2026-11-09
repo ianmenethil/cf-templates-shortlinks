@@ -4,3 +4,4 @@ dist/
 .dev.vars*
 !.dev.vars.example
 .DS_Store
+docs/.archive/
